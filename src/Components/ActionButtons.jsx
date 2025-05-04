@@ -117,12 +117,16 @@ const ActionButtons = () => {
         icon: "success",
         title: "Sale created successfully!",
         showConfirmButton: false,
-        timer: 2000, // Toast will show for 2 seconds
+        timer: 2000,
         toast: true,
-        background: "#28a745", // You can change this color
+        background: "#28a745",
         color: "#fff",
         iconColor: "#fff",
+      }).then(() => {
+        window.location.reload();
       });
+
+      window.location.reload();
     } catch (error) {
       Swal.fire({
         position: "top-end",
@@ -133,7 +137,7 @@ const ActionButtons = () => {
         toast: true,
       });
     } finally {
-      setLoading(false); // Stop loading
+      setLoading(false);
     }
   };
 

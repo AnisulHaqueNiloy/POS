@@ -115,9 +115,6 @@ const PaymentInformation = () => {
               setPaymentDetails({
                 id: selectedMethod.id,
                 bankName: selectedMethod.bankName,
-                // Add more fields if needed:
-                // type: selectedMethod.type,
-                // accountNumber: selectedMethod.accountNumber,
               });
             }
           }}
