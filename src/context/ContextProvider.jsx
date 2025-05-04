@@ -27,20 +27,17 @@ export const ContextProvider = ({ children }) => {
   const [changeAmount, setChangeAmount] = useState(0);
   const [quantity, setQuantity] = useState(0);
   const [items, setItems] = useState(0);
-  console.log(productData);
+  console.log(paymentArray);
   const barcodeOptions = [
     "01007-00025",
-
     "01007-00026",
     "01007-00143",
     "01007-00144",
     "01004-00015",
     "01004-00016",
   ];
-  console.log(grandTotal);
-  console.log(totalReceivedAmount);
-  //  payment information all states are managed from here
-  console.log(paymentMethod);
+
+  // Payment information all states are managed from here
   useEffect(() => {
     const receiveAmount = paymentArray.reduce((total, item) => {
       return total + Number(item.amount);
@@ -81,8 +78,8 @@ export const ContextProvider = ({ children }) => {
     changeAmount,
     totalReceivedAmount,
   ]);
-  console.log(totalReceivedAmount);
-  // product data and barcode sates are managed from here
+
+  // Product data and barcode states are managed from here
   useEffect(() => {
     if (selectedBarcode) {
       const fetchProduct = async () => {
@@ -132,7 +129,7 @@ export const ContextProvider = ({ children }) => {
     }
   }, [selectedBarcode]);
 
-  // delete product quantity from cart
+  // Delete product quantity from cart
   const handleDeleteProduct = (skuID) => {
     const updatedProducts = productData.map((product) => {
       if (product.SKUS.length > 1) {
@@ -146,9 +143,7 @@ export const ContextProvider = ({ children }) => {
     setProductData(updatedProducts);
   };
 
-  console.log("Product data:", productData);
-
-  //   sell person name api call
+  // Salesperson name API call
   const getSalesPerson = async () => {
     try {
       setLoading(true);
@@ -167,12 +162,12 @@ export const ContextProvider = ({ children }) => {
       const data = await apiRequest("/account/get-accounts?type=All");
       setPaymentMethod(data.data);
     } catch (error) {
-      console.error("Error fetching sales persons:", error);
+      console.error("Error fetching payment methods:", error);
     } finally {
       setLoading(false);
     }
   };
-  console.log(salesPersons);
+
   const contextValue = {
     handleDeleteProduct,
     invoiceNumber,
@@ -194,7 +189,7 @@ export const ContextProvider = ({ children }) => {
     paymentArray,
     totalReceivedAmount,
     changeAmount,
-    paymentArray,
+
     setpaymentArray,
     setPaymentMethod,
     getPayment,

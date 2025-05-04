@@ -5,6 +5,10 @@ const PaymentInformation = () => {
   const [payment, setPayment] = useState("");
   const [paymentName, setPaymentName] = useState();
   const [isMethod, setisMethod] = useState(false);
+  const [paymentDetails, setPaymentDetails] = useState({
+    id: "",
+    bankName: "",
+  });
   console.log(payment, paymentName);
   const {
     subtotal,
@@ -26,15 +30,15 @@ const PaymentInformation = () => {
     if (!selectedPaymentMethods.includes(methodName)) {
       setSelectedPaymentMethods((prev) => [...prev, methodName]);
       console.log(methodName);
-      console.log(paymentMethod);
     }
   };
-
+  console.log(paymentDetails);
   const paymentInfo = () => {
     if (paymentName && payment) {
       const newPaymentInfo = {
         method: paymentName,
         amount: payment,
+        id: paymentDetails.id,
       };
       setpaymentArray((prevArray) => [...prevArray, newPaymentInfo]);
 
@@ -99,8 +103,23 @@ const PaymentInformation = () => {
             }
           }}
           onChange={(e) => {
-            handleAddPaymentMethod(e.target.value);
-            setPaymentName(e.target.value);
+            const selectedBankName = e.target.value;
+            const selectedMethod = paymentMethod.find(
+              (method) => method.bankName === selectedBankName
+            );
+
+            handleAddPaymentMethod(selectedBankName);
+            setPaymentName(selectedBankName);
+
+            if (selectedMethod) {
+              setPaymentDetails({
+                id: selectedMethod.id,
+                bankName: selectedMethod.bankName,
+                // Add more fields if needed:
+                // type: selectedMethod.type,
+                // accountNumber: selectedMethod.accountNumber,
+              });
+            }
           }}
         >
           <option value="">Select Payment Method</option>
