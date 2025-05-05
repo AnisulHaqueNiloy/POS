@@ -3,14 +3,12 @@ import { useForm } from "../context/FormProvider";
 
 const PaymentInformation = () => {
   const { formFields, updateField, setFormFields } = useForm();
-  const { products } = formFields;
-  const [payments, setpayments] = useState([]);
-  const [selectedPaymentId, setSelectedPaymentId] = useState("");
-  const [tempReceivedAmount, setTempReceivedAmount] = useState("");
-  console.log(payments);
+  const { products, payment } = formFields;
+  const [payments, setPayments] = useState([]);
+  const [newPayment, setNewPayment] = useState({ method: "", amount: "" });
 
   useEffect(() => {
-    const fetchpayments = async () => {
+    const fetchPayments = async () => {
       try {
         const res = await fetch(
           "https://front-end-task-lake.vercel.app/api/v1/account/get-accounts?type=All",
@@ -21,47 +19,32 @@ const PaymentInformation = () => {
           }
         );
         const data = await res.json();
-        setpayments(data.data);
+        setPayments(data.data);
       } catch (error) {
-        console.error("Failed to fetch salespersons:", error);
+        console.error("Failed to fetch payment methods:", error);
       }
     };
-    fetchpayments();
+    fetchPayments();
   }, []);
 
-  // const addPayment = () => {
-  //   if (!selectedPaymentId || !tempReceivedAmount) return;
+  const handleAddPaymentMethod = () => {
+    if (!newPayment.method || !newPayment.amount) return;
 
-  //   const newPayment = {
-  //     id: selectedPaymentId,
-  //     amount: parseFloat(tempReceivedAmount),
-  //   };
-
-  //   setFormFields((prev) => ({
-  //     ...prev,
-  //     payment: [...prev.payment, newPayment],
-  //     receivedAmount: parseFloat(tempReceivedAmount), // Update receivedAmount
-  //   }));
-
-  //   setTempReceivedAmount(""); // Reset tempReceivedAmount after adding payment
-  // };
-  const addPayment = () => {
-    if (!selectedPaymentId || !tempReceivedAmount) return;
-
-    const newPayment = {
-      id: selectedPaymentId,
-      amount: parseFloat(tempReceivedAmount),
+    const paymentToAdd = {
+      id: newPayment.method,
+      amount: parseFloat(newPayment.amount),
     };
 
     setFormFields((prev) => ({
       ...prev,
-      payment: [...prev.payment, newPayment],
+      payment: [...(prev.payment || []), paymentToAdd],
       receivedAmount:
-        (prev.receivedAmount || 0) + parseFloat(tempReceivedAmount), // আগের মানের সাথে যোগ করো
+        (prev.receivedAmount || 0) + parseFloat(newPayment.amount),
     }));
 
-    setTempReceivedAmount(""); // Reset tempReceivedAmount after adding payment
+    setNewPayment({ method: "", amount: "" });
   };
+
   const totalQuantity = useMemo(
     () => products?.reduce((acc, product) => acc + product.skuList.length, 0),
     [products]
@@ -78,84 +61,166 @@ const PaymentInformation = () => {
     [products]
   );
 
-  const vat = useMemo(() => formFields.vatAmount || 0, [formFields]);
-  const discount = useMemo(() => formFields.discountAmount || 0, [formFields]);
+  const vat = useMemo(
+    () => parseFloat(formFields.vatAmount) || 0,
+    [formFields.vatAmount]
+  );
+  const discount = useMemo(
+    () => parseFloat(formFields.discountAmount) || 0,
+    [formFields.discountAmount]
+  );
   const payableAmount = useMemo(
     () => totalPrice + vat - discount,
     [totalPrice, vat, discount]
   );
 
-  const handleReceivedAmountChange = (e) => {
-    const receivedAmount = parseFloat(e.target.value) || 0;
-    updateField("receivedAmount", receivedAmount);
-    setTempReceivedAmount(receivedAmount); // Update tempReceivedAmount as well
-  };
+  const totalReceivedAmount = useMemo(() => {
+    return (formFields.payment || []).reduce(
+      (sum, p) => sum + parseFloat(p.amount),
+      0
+    );
+  }, [formFields.payment]);
 
-  const changeAmount =
-    formFields.receivedAmount >= payableAmount
-      ? formFields.receivedAmount - payableAmount
+  const changeAmount = useMemo(() => {
+    return totalReceivedAmount >= payableAmount
+      ? totalReceivedAmount - payableAmount
       : 0;
+  }, [totalReceivedAmount, payableAmount]);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-      <div className="text-lg font-medium">Total Items: {products?.length}</div>
-      <div className="text-lg font-medium">Total Quantity: {totalQuantity}</div>
-      <div className="text-lg font-medium">
-        Total Price: {totalPrice?.toFixed(2)}
+    <div className="bg-gray-100 p-4 rounded-md">
+      <div className="grid gap-2 border-2 p-1 rounded-md">
+        <h2>Customer Information</h2>
+        <div className="grid grid-cols-2 gap-2">
+          <input
+            type="text"
+            value="N/A"
+            readOnly
+            className="w-full p-1 bg-white border-2 rounded-md"
+          />
+          <input
+            type="text"
+            value="01284462842"
+            readOnly
+            className="w-full p-1 bg-white border-2 rounded-md"
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <input
+            type="text"
+            value="Membership"
+            readOnly
+            className="w-full p-1 bg-white border-2 rounded-md"
+          />
+          <input
+            type="text"
+            value="Discount"
+            readOnly
+            className="w-full p-1 bg-white border-2 rounded-md"
+          />
+        </div>
       </div>
-      <div className="text-lg font-medium">VAT: {vat.toFixed(2)}</div>
-      <div className="text-lg font-medium">
-        Discount: {discount?.toFixed(2)}
-      </div>
-      <div className="text-xl font-bold text-primary">
-        Total Payable: {payableAmount?.toFixed(2)}
+      <div className="grid grid-cols-2 gap-y-2 mb-4">
+        <div className="font-medium text-gray-700">
+          Maximum Retail Price (MRP)
+        </div>
+        <div className="text-right">{totalPrice?.toFixed(2)}৳</div>
+        <div className="font-medium text-gray-700">(+) Vat/Tax</div>
+        <div className="text-right">{vat?.toFixed(2)}৳</div>
+        <div className="font-medium text-gray-700">(-) Discount</div>
+        <div className="text-right">{discount?.toFixed(2)}৳</div>
+        <div className="font-medium text-gray-700">Number Of Items</div>
+        <div className="text-right">{products?.length}</div>
+        <div className="font-medium text-gray-700">Total Items Quantity</div>
+        <div className="text-right">{totalQuantity}</div>
+        <div className="font-bold text-xl text-gray-800">
+          Total Payable Amount
+        </div>
+        <div className="text-right font-bold text-xl text-primary">
+          {payableAmount?.toFixed(2)}৳
+        </div>
       </div>
 
-      <div>
-        <label htmlFor="receivedAmount" className="block text-lg font-medium">
-          Received Amount:
-        </label>
-        <input
-          type="number"
-          id="receivedAmount"
-          className="border px-2 py-1 rounded-md"
-          value={formFields.receivedAmount || ""}
-          onChange={handleReceivedAmountChange}
-        />
+      <div className="mb-4">
+        <h3 className="font-semibold text-lg text-gray-700 mb-2">
+          Payment Information
+        </h3>
+        <div>
+          {(payment || []).map((p, index) => (
+            <div
+              key={index}
+              className="grid grid-cols-2 gap-2 mb-2 items-center"
+            >
+              <select
+                className="select select-bordered w-full max-w-xs"
+                value={p.id}
+                disabled
+              >
+                {payments?.map((opt) => (
+                  <option key={opt.id} value={opt.id}>
+                    {opt.bankName || opt.accountName || "Cash"}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="number"
+                className="input input-bordered w-full max-w-xs"
+                value={p.amount}
+                readOnly
+              />
+            </div>
+          ))}
+          <div className="flex items-center gap-2 mb-2">
+            <button className="btn btn-sm">+</button>
+            <select
+              className="select select-bordered w-1/2"
+              value={newPayment.method}
+              onChange={(e) =>
+                setNewPayment({ ...newPayment, method: e.target.value })
+              }
+            >
+              <option value="">Choose The Method</option>
+              {payments?.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.bankName || p.accountName || "Cash"}
+                </option>
+              ))}
+            </select>
+            <input
+              type="number"
+              placeholder="Enter Payment Amount"
+              className="input input-bordered w-1/2"
+              value={newPayment.amount}
+              onChange={(e) =>
+                setNewPayment({ ...newPayment, amount: e.target.value })
+              }
+            />
+          </div>
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={handleAddPaymentMethod}
+            disabled={!newPayment.method || !newPayment.amount}
+          >
+            Add Payment
+          </button>
+        </div>
       </div>
 
-      <div className="text-xl font-bold text-primary">
-        Change: {changeAmount?.toFixed(2)}
+      <div className="mt-4">
+        <h3 className="font-semibold text-lg text-gray-700 mb-2">
+          Addition Information
+        </h3>
+        <div className="grid grid-cols-2 gap-y-2">
+          <div className="font-medium text-gray-700">Payable Amount</div>
+          <div className="text-right">{payableAmount?.toFixed(2)}৳</div>
+          <div className="font-medium text-gray-700">Total Received Amount</div>
+          <div className="text-right">{totalReceivedAmount?.toFixed(2)}৳</div>
+          <div className="font-bold text-gray-800">Change</div>
+          <div className="text-right font-bold text-green-500">
+            {changeAmount?.toFixed(2)}৳
+          </div>
+        </div>
       </div>
-
-      <select
-        className="select select-bordered"
-        value={selectedPaymentId}
-        onChange={(e) => setSelectedPaymentId(e.target.value)}
-      >
-        <option value="">Select Method</option>
-        {payments?.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.bankName}
-          </option>
-        ))}
-      </select>
-
-      <input
-        type="number"
-        placeholder="Amount"
-        className="border px-2 py-1 rounded-md"
-        value={tempReceivedAmount}
-        onChange={(e) => setTempReceivedAmount(e.target.value)}
-      />
-
-      <button
-        className="btn btn-primary"
-        onClick={addPayment}
-        disabled={!selectedPaymentId || !tempReceivedAmount}
-      >
-        Add Payment
-      </button>
     </div>
   );
 };

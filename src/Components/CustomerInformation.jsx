@@ -1,4 +1,3 @@
-// 📁 src/components/CustomerInfo.jsx
 import React, { useEffect, useState } from "react";
 import { useForm } from "../context/FormProvider";
 
@@ -32,7 +31,7 @@ const CustomerInformation = () => {
     e.preventDefault();
     if (!barcode.trim()) return;
 
-    await addProductByBarcode(barcode); // only sending barcode, context does the rest
+    await addProductByBarcode(barcode);
     setBarcode("");
   };
 

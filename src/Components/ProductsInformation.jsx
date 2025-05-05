@@ -8,7 +8,6 @@ const ProductInformation = () => {
     <div className="border-2 min-h-[400px] p-4">
       <div className="grid gap-4">
         {formFields?.products?.map((product) => {
-          // Get price from any SKU (assuming all SKUs have the same price)
           const pricePerUnit = product.productdiscount
             ? product.sellprice - product.productdiscount
             : product.sellprice;
@@ -34,10 +33,19 @@ const ProductInformation = () => {
               <p>Available Stock: {product.availableStock}</p>
 
               {/* ✅ Price and Subtotal Display */}
-              <p className="mt-2 text-sm text-gray-700">
-                <span className="font-semibold">Price per Unit:</span> ৳
-                {pricePerUnit}
-              </p>
+              <div className="relative">
+                <p className="mt-2 text-sm text-gray-700">
+                  <span className="font-semibold ">Price per Unit:</span> ৳
+                  {pricePerUnit}
+                </p>
+                {product.productdiscount ? (
+                  <span className="absolute top-0 left-32   ">
+                    {product.sellprice}
+                  </span>
+                ) : (
+                  ""
+                )}
+              </div>
               <p className="text-sm text-gray-700">
                 <span className="font-semibold">Subtotal:</span> ৳{subtotal}
               </p>

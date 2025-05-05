@@ -6,6 +6,17 @@ export const useForm = () => useContext(FormContext);
 
 export const FormProvider = ({ children }) => {
   const [invoiceCounter, setInvoiceCounter] = useState(1);
+  const [heldInvoices, setHeldInvoices] = useState(() => {
+    const held = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("held-invoice-")) {
+        held.push(key.replace("held-invoice-", ""));
+      }
+    }
+    return held;
+  });
+
   const generateInvoiceNumber = () => {
     const today = new Date();
     const day = String(today.getDate()).padStart(2, "0");
@@ -176,8 +187,7 @@ export const FormProvider = ({ children }) => {
   };
   const clearForm = () => {
     setInvoiceCounter((prevCounter) => prevCounter + 1);
-    setFormFields((prev) => ({
-      ...prev,
+    setFormFields({
       invoiceNumber: generateInvoiceNumber(),
       phoneNumber: "",
       membershipId: "",
@@ -186,6 +196,8 @@ export const FormProvider = ({ children }) => {
       vatAmount: 0,
       salesPerson: "",
       products: [],
+      payment: [],
+      receivedAmount: 0,
       paymentSummary: {
         totalPrice: 0,
         vat: 0,
@@ -194,12 +206,11 @@ export const FormProvider = ({ children }) => {
         numberOfItems: 0,
         totalPayable: 0,
       },
-    }));
+    });
   };
   const clear = () => {
-    setFormFields((prev) => ({
-      ...prev,
-
+    setFormFields({
+      invoiceNumber: formFields.invoiceNumber, // Keep invoice number
       phoneNumber: "",
       membershipId: "",
       discountAmount: 0,
@@ -207,6 +218,8 @@ export const FormProvider = ({ children }) => {
       vatAmount: 0,
       salesPerson: "",
       products: [],
+      payment: [],
+      receivedAmount: 0,
       paymentSummary: {
         totalPrice: 0,
         vat: 0,
@@ -215,23 +228,58 @@ export const FormProvider = ({ children }) => {
         numberOfItems: 0,
         totalPayable: 0,
       },
-    }));
+    });
   };
 
   const holdInvoice = () => {
     localStorage.setItem(
-      `invoice-${formFields.invoiceNumber}`,
+      `held-invoice-${formFields.invoiceNumber}`,
       JSON.stringify(formFields)
     );
-    clearForm();
+    setHeldInvoices((prev) => {
+      if (!prev.includes(formFields.invoiceNumber.toString())) {
+        return [...prev, formFields.invoiceNumber.toString()];
+      }
+      return prev;
+    });
+    clear();
   };
 
   const restoreInvoice = (invoiceNo) => {
-    const saved = localStorage.getItem(`invoice-${invoiceNo}`);
+    const saved = localStorage.getItem(`held-invoice-${invoiceNo}`);
     if (saved) {
-      setFormFields(JSON.parse(saved));
+      try {
+        const parsedData = JSON.parse(saved);
+        setFormFields(parsedData);
+      } catch (error) {
+        console.error("Error parsing held invoice data:", error);
+        // Handle the error, e.g., show a message to the user
+        alert("Failed to restore invoice.  The data may be corrupted.");
+      }
     }
   };
+
+  const getHeldInvoiceNumbers = () => {
+    const numbers = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("held-invoice-")) {
+        numbers.push(key.replace("held-invoice-", ""));
+      }
+    }
+    return numbers.sort((a, b) => parseInt(b) - parseInt(a));
+  };
+
+  useEffect(() => {
+    const held = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("held-invoice-")) {
+        held.push(key.replace("held-invoice-", ""));
+      }
+    }
+    setHeldInvoices(held);
+  }, []);
 
   const value = {
     formFields,
@@ -245,6 +293,8 @@ export const FormProvider = ({ children }) => {
     setFormFields,
     removeProduct,
     clear,
+    heldInvoices,
+    getHeldInvoiceNumbers,
   };
 
   return <FormContext.Provider value={value}>{children}</FormContext.Provider>;
