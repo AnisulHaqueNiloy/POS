@@ -1,147 +1,161 @@
-import React, { useContext, useState } from "react";
-import { ProductCustomerContext } from "../context/ContextProvider";
+import React, { useEffect, useMemo, useState } from "react";
+import { useForm } from "../context/FormProvider";
 
 const PaymentInformation = () => {
-  const [payment, setPayment] = useState("");
-  const [paymentName, setPaymentName] = useState();
-  const [isMethod, setisMethod] = useState(false);
-  const [paymentDetails, setPaymentDetails] = useState({
-    id: "",
-    bankName: "",
-  });
-  console.log(payment, paymentName);
-  const {
-    subtotal,
-    grandTotal,
-    vatAmount,
-    discountAmount,
-    items,
-    quantity,
-    getPayment,
-    setPaymentMethod,
-    setpaymentArray,
-    loading,
-    paymentMethod,
-    selectedPaymentMethods,
-    setSelectedPaymentMethods,
-  } = useContext(ProductCustomerContext);
-  const handleAddPaymentMethod = (methodName) => {
-    // Avoid duplicates
-    if (!selectedPaymentMethods.includes(methodName)) {
-      setSelectedPaymentMethods((prev) => [...prev, methodName]);
-      console.log(methodName);
-    }
-  };
-  console.log(paymentDetails);
-  const paymentInfo = () => {
-    if (paymentName && payment) {
-      const newPaymentInfo = {
-        method: paymentName,
-        amount: payment,
-        id: paymentDetails.id,
-      };
-      setpaymentArray((prevArray) => [...prevArray, newPaymentInfo]);
+  const { formFields, updateField, setFormFields } = useForm();
+  const { products } = formFields;
+  const [payments, setpayments] = useState([]);
+  const [selectedPaymentId, setSelectedPaymentId] = useState("");
+  const [tempReceivedAmount, setTempReceivedAmount] = useState("");
+  console.log(payments);
 
-      setPayment("");
-      setPaymentName("");
-    } else {
-      alert("Please select a payment method and enter the amount.");
-    }
+  useEffect(() => {
+    const fetchpayments = async () => {
+      try {
+        const res = await fetch(
+          "https://front-end-task-lake.vercel.app/api/v1/account/get-accounts?type=All",
+          {
+            headers: {
+              Authorization: `Bearer ${import.meta.env.VITE_TOKEN}`,
+            },
+          }
+        );
+        const data = await res.json();
+        setpayments(data.data);
+      } catch (error) {
+        console.error("Failed to fetch salespersons:", error);
+      }
+    };
+    fetchpayments();
+  }, []);
+
+  // const addPayment = () => {
+  //   if (!selectedPaymentId || !tempReceivedAmount) return;
+
+  //   const newPayment = {
+  //     id: selectedPaymentId,
+  //     amount: parseFloat(tempReceivedAmount),
+  //   };
+
+  //   setFormFields((prev) => ({
+  //     ...prev,
+  //     payment: [...prev.payment, newPayment],
+  //     receivedAmount: parseFloat(tempReceivedAmount), // Update receivedAmount
+  //   }));
+
+  //   setTempReceivedAmount(""); // Reset tempReceivedAmount after adding payment
+  // };
+  const addPayment = () => {
+    if (!selectedPaymentId || !tempReceivedAmount) return;
+
+    const newPayment = {
+      id: selectedPaymentId,
+      amount: parseFloat(tempReceivedAmount),
+    };
+
+    setFormFields((prev) => ({
+      ...prev,
+      payment: [...prev.payment, newPayment],
+      receivedAmount:
+        (prev.receivedAmount || 0) + parseFloat(tempReceivedAmount), // আগের মানের সাথে যোগ করো
+    }));
+
+    setTempReceivedAmount(""); // Reset tempReceivedAmount after adding payment
   };
+  const totalQuantity = useMemo(
+    () => products?.reduce((acc, product) => acc + product.skuList.length, 0),
+    [products]
+  );
+
+  const totalPrice = useMemo(
+    () =>
+      products?.reduce((acc, product) => {
+        const priceToUse = product.productdiscount
+          ? product.discPrice
+          : product.sellprice;
+        return acc + priceToUse * product.skuList.length;
+      }, 0),
+    [products]
+  );
+
+  const vat = useMemo(() => formFields.vatAmount || 0, [formFields]);
+  const discount = useMemo(() => formFields.discountAmount || 0, [formFields]);
+  const payableAmount = useMemo(
+    () => totalPrice + vat - discount,
+    [totalPrice, vat, discount]
+  );
+
+  const handleReceivedAmountChange = (e) => {
+    const receivedAmount = parseFloat(e.target.value) || 0;
+    updateField("receivedAmount", receivedAmount);
+    setTempReceivedAmount(receivedAmount); // Update tempReceivedAmount as well
+  };
+
+  const changeAmount =
+    formFields.receivedAmount >= payableAmount
+      ? formFields.receivedAmount - payableAmount
+      : 0;
+
   return (
-    <div className="border-2 p-4 rounded-md">
-      <h2 className="text-lg font-semibold mb-2">Payment Information</h2>
-      <div className="">
-        <div>
-          <div className="flex justify-between items-center">
-            <label className="label">
-              <span className="label-text">Maximum Retail Price (MRP)</span>
-            </label>
-            <span className="font-semibold">{subtotal}.00৳</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <label className="label">
-              <span className="label-text">(+) Vat/Tax</span>
-            </label>
-            <span>{vatAmount}৳</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <label className="label">
-              <span className="label-text">(-) Discount</span>
-            </label>
-            <span>{discountAmount}৳</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <label className="label">
-              <span className="label-text">Number Of Items</span>
-            </label>
-            <span>{items}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <label className="label">
-              <span className="label-text">Total Items Quantity</span>
-            </label>
-            <span className="font-semibold">{quantity}</span>{" "}
-          </div>
-          <div className="flex justify-between items-center font-semibold text-lg">
-            <label className="label">
-              <span className="label-text">Total Payable Amount</span>
-            </label>
-            <span>{grandTotal}৳</span>
-          </div>
-        </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+      <div className="text-lg font-medium">Total Items: {products?.length}</div>
+      <div className="text-lg font-medium">Total Quantity: {totalQuantity}</div>
+      <div className="text-lg font-medium">
+        Total Price: {totalPrice?.toFixed(2)}
       </div>
-      <div className="form-control">
-        <label htmlFor="selectSalesRep" className="label">
-          <span className="label-text">Select Sales Person</span>
+      <div className="text-lg font-medium">VAT: {vat.toFixed(2)}</div>
+      <div className="text-lg font-medium">
+        Discount: {discount?.toFixed(2)}
+      </div>
+      <div className="text-xl font-bold text-primary">
+        Total Payable: {payableAmount?.toFixed(2)}
+      </div>
+
+      <div>
+        <label htmlFor="receivedAmount" className="block text-lg font-medium">
+          Received Amount:
         </label>
-        <select
-          className="select select-bordered w-full"
-          onClick={() => {
-            if (paymentMethod.length === 0 && !loading) {
-              getPayment();
-            }
-          }}
-          onChange={(e) => {
-            const selectedBankName = e.target.value;
-            const selectedMethod = paymentMethod.find(
-              (method) => method.bankName === selectedBankName
-            );
-
-            handleAddPaymentMethod(selectedBankName);
-            setPaymentName(selectedBankName);
-
-            if (selectedMethod) {
-              setPaymentDetails({
-                id: selectedMethod.id,
-                bankName: selectedMethod.bankName,
-              });
-            }
-          }}
-        >
-          <option value="">Select Payment Method</option>
-          {paymentMethod.map((Method, id) => (
-            <option key={id} value={Method.bankName}>
-              {Method.bankName}
-            </option>
-          ))}
-        </select>
-
         <input
           type="number"
-          placeholder="Enter amount"
-          className="input input-bordered w-full mt-2"
-          value={payment}
-          onChange={(e) => setPayment(e.target.value)}
+          id="receivedAmount"
+          className="border px-2 py-1 rounded-md"
+          value={formFields.receivedAmount || ""}
+          onChange={handleReceivedAmountChange}
         />
-
-        <button
-          onClick={paymentInfo}
-          className="cursor-pointer bg-green-300 w-full my-4"
-        >
-          Save Payment
-        </button>
       </div>
+
+      <div className="text-xl font-bold text-primary">
+        Change: {changeAmount?.toFixed(2)}
+      </div>
+
+      <select
+        className="select select-bordered"
+        value={selectedPaymentId}
+        onChange={(e) => setSelectedPaymentId(e.target.value)}
+      >
+        <option value="">Select Method</option>
+        {payments?.map((p) => (
+          <option key={p.id} value={p.id}>
+            {p.bankName}
+          </option>
+        ))}
+      </select>
+
+      <input
+        type="number"
+        placeholder="Amount"
+        className="border px-2 py-1 rounded-md"
+        value={tempReceivedAmount}
+        onChange={(e) => setTempReceivedAmount(e.target.value)}
+      />
+
+      <button
+        className="btn btn-primary"
+        onClick={addPayment}
+        disabled={!selectedPaymentId || !tempReceivedAmount}
+      >
+        Add Payment
+      </button>
     </div>
   );
 };

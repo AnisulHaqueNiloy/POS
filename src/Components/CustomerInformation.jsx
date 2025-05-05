@@ -1,64 +1,114 @@
-import React from "react";
+// 📁 src/components/CustomerInfo.jsx
+import React, { useEffect, useState } from "react";
+import { useForm } from "../context/FormProvider";
 
 const CustomerInformation = () => {
-  return (
-    <div className="border-2 p-4 rounded-md gap-4">
-      <div>
-        <h2 className="text-lg font-semibold mb-2">Customer's Information</h2>
-        <div className="grid grid-cols-2 gap-4">
-          {/* First Row (2 Input Fields) */}
-          <div className="form-control">
-            <label htmlFor="customerName" className="label">
-              <span className="label-text">Name</span>
-            </label>
-            <input
-              type="text"
-              id="customerName"
-              className="input input-bordered"
-              defaultValue="N/A"
-              readOnly
-            />
-          </div>
-          <div className="form-control">
-            <label htmlFor="customerPhone" className="label">
-              <span className="label-text">Phone</span>
-            </label>
-            <input
-              type="text"
-              id="customerPhone"
-              className="input input-bordered"
-              defaultValue="0165271276"
-              readOnly
-            />
-          </div>
+  const { formFields, updateField, setSalesPerson, addProductByBarcode } =
+    useForm();
+  const [salesOptions, setSalesOptions] = useState([]);
+  const [barcode, setBarcode] = useState("");
 
-          {/* Second Row (The remaining 2 Input Fields will automatically go here) */}
-          <div className="form-control">
-            <label htmlFor="customerMembership" className="label">
-              <span className="label-text">Membership</span>
-            </label>
-            <input
-              type="text"
-              id="customerMembership"
-              className="input input-bordered"
-              defaultValue="Not Found"
-              readOnly
-            />
-          </div>
-          <div className="form-control">
-            <label htmlFor="customerDiscount" className="label">
-              <span className="label-text">Discount</span>
-            </label>
-            <input
-              type="text"
-              id="customerDiscount"
-              className="input input-bordered"
-              defaultValue="Not Found"
-              readOnly
-            />
-          </div>
-        </div>
+  useEffect(() => {
+    const fetchSalesPersons = async () => {
+      try {
+        const res = await fetch(
+          "https://front-end-task-lake.vercel.app/api/v1/employee/get-employee-all",
+          {
+            headers: {
+              Authorization: `Bearer ${import.meta.env.VITE_TOKEN}`,
+            },
+          }
+        );
+        const data = await res.json();
+        setSalesOptions(data.data);
+      } catch (error) {
+        console.error("Failed to fetch salespersons:", error);
+      }
+    };
+    fetchSalesPersons();
+  }, []);
+  console.log(salesOptions);
+  const handleBarcodeSubmit = async (e) => {
+    e.preventDefault();
+    if (!barcode.trim()) return;
+
+    await addProductByBarcode(barcode); // only sending barcode, context does the rest
+    setBarcode("");
+  };
+
+  console.log(barcode);
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="col-span-1 md:col-span-2">
+        <p className="font-semibold">
+          Invoice Number: {formFields.invoiceNumber}
+        </p>
       </div>
+      <input
+        type="text"
+        placeholder="Phone Number"
+        value={formFields.phoneNumber || ""}
+        onChange={(e) => updateField("phoneNumber", e.target.value)}
+        className="input input-bordered"
+      />
+      <input
+        type="text"
+        placeholder="Membership ID"
+        value={formFields.membershipId || ""}
+        onChange={(e) => updateField("membershipId", e.target.value)}
+        className="input input-bordered"
+      />
+      <input
+        type="number"
+        placeholder="Discount Amount"
+        value={formFields.discountAmount || ""}
+        onChange={(e) => updateField("discountAmount", Number(e.target.value))}
+        className="input input-bordered"
+      />
+      <input
+        type="number"
+        placeholder="VAT Amount"
+        value={formFields.vatAmount || ""}
+        onChange={(e) => updateField("vatAmount", Number(e.target.value))}
+        className="input input-bordered"
+      />
+      <select
+        className="select select-bordered"
+        value={formFields.salesPerson || ""}
+        onChange={(e) => setSalesPerson(e.target.value)}
+      >
+        <option value="">Select Sales Person</option>
+        {salesOptions?.map((person) => (
+          <option key={person.id} value={person.firstname}>
+            {person.firstName}
+          </option>
+        ))}
+      </select>
+      <input
+        type="text"
+        placeholder="Discount Type"
+        value={formFields.discountType || ""}
+        onChange={(e) => updateField("discountType", e.target.value)}
+        className="input input-bordered"
+      />
+
+      {/* Barcode Input */}
+      <form
+        onSubmit={handleBarcodeSubmit}
+        className="col-span-1 md:col-span-2 flex gap-2"
+      >
+        <input
+          type="text"
+          placeholder="Enter Barcode"
+          value={barcode || ""}
+          onChange={(e) => setBarcode(e.target.value)}
+          className="input input-bordered flex-1"
+        />
+        <button type="submit" className="btn btn-primary">
+          Add
+        </button>
+      </form>
     </div>
   );
 };
